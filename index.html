@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能工作计划手札</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/easymde/2.17.0/easymde.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="icon.png" type="image/png">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 顶部导航栏 -->
+        <nav class="navbar">
+            <div class="nav-left">
+                <div class="logo">
+                    <i class="fas fa-book"></i>
+                    <span>智能工作计划手札</span>
+                </div>
+                <button class="btn-new" id="newNoteBtn">
+                    <i class="fas fa-plus"></i> 新建笔记
+                </button>
+                <button class="btn-today" id="todayNoteBtn">
+                    <i class="fas fa-calendar-day"></i> 今日日记
+                </button>
+            </div>
+            <div class="nav-center">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="搜索笔记...">
+                </div>
+            </div>
+            <div class="nav-right">
+                <div class="theme-toggle">
+                    <i class="fas fa-moon" id="themeIcon"></i>
+                </div>
+                <div class="user-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 主内容区域 -->
+        <div class="main-content">
+            <!-- 左侧边栏 -->
+            <aside class="sidebar">
+                <!-- 文件夹树 -->
+                <div class="folders-section">
+                    <div class="section-header">
+                        <i class="fas fa-folder"></i>
+                        <h3>文件夹</h3>
+                        <button class="btn-add-folder" id="addFolderBtn">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <ul class="folders-list" id="foldersList">
+                        <li class="folder-item active" data-id="all">
+                            <i class="fas fa-th-large"></i>
+                            <span>全部笔记</span>
+                            <span class="folder-count" id="allNotesCount">0</span>
+                        </li>
+                        <li class="folder-item" data-id="starred">
+                            <i class="fas fa-star"></i>
+                            <span>星标笔记</span>
+                            <span class="folder-count" id="starredCount">0</span>
+                        </li>
+                        <li class="folder-item" data-id="today">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>今日</span>
+                            <span class="folder-count" id="todayCount">0</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- 标签云 -->
+                <div class="tags-section">
+                    <div class="section-header">
+                        <i class="fas fa-tags"></i>
+                        <h3>标签</h3>
+                    </div>
+                    <div class="tags-cloud" id="tagsCloud">
+                        <!-- 动态生成标签 -->
+                    </div>
+                </div>
+
+                <!-- 快捷操作 -->
+                <div class="quick-actions">
+                    <button class="quick-btn" id="kanbanBtn">
+                        <i class="fas fa-columns"></i>
+                        <span>看板视图</span>
+                    </button>
+                    <button class="quick-btn" id="calendarBtn">
+                        <i class="fas fa-calendar"></i>
+                        <span>日历视图</span>
+                    </button>
+                    <button class="quick-btn" id="exportBtn">
+                        <i class="fas fa-download"></i>
+                        <span>导出数据</span>
+                    </button>
+                    <button class="quick-btn" id="importBtn">
+                        <i class="fas fa-upload"></i>
+                        <span>导入数据</span>
+                    </button>
+                </div>
+
+                <!-- 统计信息 -->
+                <div class="stats-section">
+                    <div class="stat-item">
+                        <i class="fas fa-file-alt"></i>
+                        <div>
+                            <span class="stat-value" id="totalNotes">0</span>
+                            <span class="stat-label">笔记</span>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <i class="fas fa-check-circle"></i>
+                        <div>
+                            <span class="stat-value" id="completedTasks">0</span>
+                            <span class="stat-label">任务</span>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <i class="fas fa-clock"></i>
+                        <div>
+                            <span class="stat-value" id="totalWords">0</span>
+                            <span class="stat-label">字数</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- 中央内容区域 -->
+            <main class="content-area">
+                <!-- 笔记列表 -->
+                <div class="notes-list-container">
+                    <div class="list-header">
+                        <h2 id="listTitle">全部笔记</h2>
+                        <div class="list-controls">
+                            <select id="sortSelect">
+                                <option value="updated">最近更新</option>
+                                <option value="created">创建时间</option>
+                                <option value="title">标题</option>
+                            </select>
+                            <div class="view-toggle">
+                                <button class="view-btn active" data-view="list">
+                                    <i class="fas fa-list"></i>
+                                </button>
+                                <button class="view-btn" data-view="grid">
+                                    <i class="fas fa-th-large"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="notes-list" id="notesList">
+                        <!-- 动态生成笔记列表 -->
+                        <div class="empty-state">
+                            <i class="fas fa-sticky-note"></i>
+                            <h3>还没有笔记</h3>
+                            <p>点击"新建笔记"开始记录</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 编辑器区域 -->
+                <div class="editor-container">
+                    <div class="editor-header">
+                        <input type="text" id="noteTitle" class="note-title-input" placeholder="无标题笔记">
+                        <div class="editor-actions">
+                            <button class="action-btn" id="saveNoteBtn" title="保存">
+                                <i class="fas fa-save"></i>
+                            </button>
+                            <button class="action-btn" id="starNoteBtn" title="星标">
+                                <i class="far fa-star"></i>
+                            </button>
+                            <button class="action-btn" id="deleteNoteBtn" title="删除">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            <button class="action-btn" id="exportNoteBtn" title="导出">
+                                <i class="fas fa-download"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 标签输入 -->
+                    <div class="tags-input-container">
+                        <div class="tags-display" id="tagsDisplay"></div>
+                        <input type="text" id="tagsInput" placeholder="添加标签 (按回车添加)" class="tags-input">
+                    </div>
+
+                    <!-- Markdown编辑器 -->
+                    <div class="editor-split">
+                        <div class="editor-pane">
+                            <div class="editor-toolbar">
+                                <button class="tool-btn" data-command="bold">
+                                    <i class="fas fa-bold"></i>
+                                </button>
+                                <button class="tool-btn" data-command="italic">
+                                    <i class="fas fa-italic"></i>
+                                </button>
+                                <button class="tool-btn" data-command="header">
+                                    <i class="fas fa-heading"></i>
+                                </button>
+                                <button class="tool-btn" data-command="link">
+                                    <i class="fas fa-link"></i>
+                                </button>
+                                <button class="tool-btn" data-command="image">
+                                    <i class="fas fa-image"></i>
+                                </button>
+                                <button class="tool-btn" data-command="code">
+                                    <i class="fas fa-code"></i>
+                                </button>
+                                <button class="tool-btn" data-command="list">
+                                    <i class="fas fa-list-ul"></i>
+                                </button>
+                                <button class="tool-btn" data-command="task">
+                                    <i class="fas fa-tasks"></i>
+                                </button>
+                                <div class="tool-separator"></div>
+                                <button class="tool-btn" id="previewToggle">
+                                    <i class="fas fa-eye"></i> 预览
+                                </button>
+                            </div>
+                            <textarea id="markdownEditor" class="markdown-editor" placeholder="开始写作..."></textarea>
+                        </div>
+                        <div class="preview-pane" id="previewPane">
+                            <div class="preview-header">
+                                <h3><i class="fas fa-eye"></i> 预览</h3>
+                            </div>
+                            <div class="markdown-preview" id="markdownPreview">
+                                <!-- Markdown预览内容 -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 笔记信息 -->
+                    <div class="note-info">
+                        <div class="info-item">
+                            <i class="fas fa-clock"></i>
+                            <span id="noteCreated">刚刚创建</span>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-sync-alt"></i>
+                            <span id="noteUpdated">刚刚更新</span>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-font"></i>
+                            <span id="wordCount">0 字</span>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- 模态框 -->
+        <div class="modal-overlay" id="modalOverlay">
+            <div class="modal" id="folderModal">
+                <h3><i class="fas fa-folder-plus"></i> 新建文件夹</h3>
+                <input type="text" id="folderNameInput" placeholder="文件夹名称">
+                <div class="color-picker">
+                    <div class="color-option" style="background-color: #3b82f6;" data-color="#3b82f6"></div>
+                    <div class="color-option" style="background-color: #10b981;" data-color="#10b981"></div>
+                    <div class="color-option" style="background-color: #f59e0b;" data-color="#f59e0b"></div>
+                    <div class="color-option" style="background-color: #ef4444;" data-color="#ef4444"></div>
+                    <div class="color-option" style="background-color: #8b5cf6;" data-color="#8b5cf6"></div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-cancel" id="cancelFolderBtn">取消</button>
+                    <button class="btn-confirm" id="confirmFolderBtn">创建</button>
+                </div>
+            </div>
+
+            <div class="modal" id="exportModal">
+                <h3><i class="fas fa-download"></i> 导出数据</h3>
+                <div class="export-options">
+                    <label class="export-option">
+                        <input type="radio" name="exportType" value="all" checked>
+                        <div class="option-content">
+                            <i class="fas fa-database"></i>
+                            <div>
+                                <strong>全部数据</strong>
+                                <p>导出所有笔记和设置</p>
+                            </div>
+                        </div>
+                    </label>
+                    <label class="export-option">
+                        <input type="radio" name="exportType" value="notes">
+                        <div class="option-content">
+                            <i class="fas fa-file-alt"></i>
+                            <div>
+                                <strong>仅笔记</strong>
+                                <p>导出所有笔记内容</p>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-cancel" id="cancelExportBtn">取消</button>
+                    <button class="btn-confirm" id="confirmExportBtn">导出</button>
+                </div>
+            </div>
+
+            <div class="modal" id="kanbanModal">
+                <h3><i class="fas fa-columns"></i> 任务看板</h3>
+                <div class="kanban-board">
+                    <div class="kanban-column">
+                        <div class="column-header" style="background-color: #fee2e2;">
+                            <h4>待办</h4>
+                            <span class="column-count">0</span>
+                        </div>
+                        <div class="column-content" id="todoColumn">
+                            <!-- 任务卡片 -->
+                        </div>
+                        <button class="add-task-btn">+ 添加任务</button>
+                    </div>
+                    <div class="kanban-column">
+                        <div class="column-header" style="background-color: #dbeafe;">
+                            <h4>进行中</h4>
+                            <span class="column-count">0</span>
+                        </div>
+                        <div class="column-content" id="doingColumn">
+                            <!-- 任务卡片 -->
+                        </div>
+                        <button class="add-task-btn">+ 添加任务</button>
+                    </div>
+                    <div class="kanban-column">
+                        <div class="column-header" style="background-color: #fef3c7;">
+                            <h4>审核中</h4>
+                            <span class="column-count">0</span>
+                        </div>
+                        <div class="column-content" id="reviewColumn">
+                            <!-- 任务卡片 -->
+                        </div>
+                        <button class="add-task-btn">+ 添加任务</button>
+                    </div>
+                    <div class="kanban-column">
+                        <div class="column-header" style="background-color: #dcfce7;">
+                            <h4>已完成</h4>
+                            <span class="column-count">0</span>
+                        </div>
+                        <div class="column-content" id="doneColumn">
+                            <!-- 任务卡片 -->
+                        </div>
+                        <button class="add-task-btn">+ 添加任务</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 通知区域 -->
+        <div class="notification-area" id="notificationArea"></div>
+
+        <!-- 番茄时钟 -->
+        <div class="pomodoro-widget" id="pomodoroWidget">
+            <div class="pomodoro-header">
+                <i class="fas fa-clock"></i>
+                <span>番茄时钟</span>
+                <button class="pomodoro-close" id="closePomodoroBtn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="pomodoro-timer">
+                <span id="pomodoroTime">25:00</span>
+                <div class="pomodoro-mode">工作模式</div>
+            </div>
+            <div class="pomodoro-controls">
+                <button class="pomodoro-btn start" id="startPomodoroBtn">
+                    <i class="fas fa-play"></i>
+                </button>
+                <button class="pomodoro-btn pause" id="pausePomodoroBtn">
+                    <i class="fas fa-pause"></i>
+                </button>
+                <button class="pomodoro-btn reset" id="resetPomodoroBtn">
+                    <i class="fas fa-redo"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入JavaScript库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.1/purify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/locale/zh-cn.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/easymde/2.17.0/easymde.min.js"></script>
+    
+    <!-- 主应用逻辑 -->
+    <script src="app.js"></script>
+</body>
+</html>
